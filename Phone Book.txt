@@ -1,0 +1,273 @@
+import javax.swing.*;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.regex.Pattern;
+import java.io.*;
+
+class Contact implements Comparable<Contact> {
+    String name;
+    String phoneNumber;
+
+    public Contact(String name, String phoneNumber) {
+        this.name = name;
+        this.phoneNumber = phoneNumber;
+    }
+
+    @Override
+    public String toString() {
+        return "Name: " + name + ", Phone Number: " + phoneNumber;
+    }
+
+    @Override
+    public int compareTo(Contact other) {
+        return this.name.compareToIgnoreCase(other.name);
+    }
+}
+
+public class Phonebook extends JFrame {
+    private ArrayList<Contact> contacts = new ArrayList<>();
+
+    // GUI elements
+    private JTextField nameField, phoneField, searchField;
+    private JTextArea displayArea;
+    private JButton addButton, searchButton, deleteButton, updateButton, displayButton, sortButton, exitButton, saveButton, loadButton;
+
+    public Phonebook() {
+        setTitle("Phonebook");
+        setSize(1280, 680);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Panel for inputs
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(3, 2));
+
+        panel.add(new JLabel("Name:"));
+        nameField = new JTextField();
+        panel.add(nameField);
+
+        panel.add(new JLabel("Phone Number:"));
+        phoneField = new JTextField();
+        panel.add(phoneField);
+
+        addButton = new JButton("Add Contact");
+        addButton.addActionListener(e -> insertContact());
+        panel.add(addButton);
+
+        add(panel, BorderLayout.NORTH);
+
+        // Panel to display contacts
+        displayArea = new JTextArea();
+        displayArea.setEditable(false);
+        add(new JScrollPane(displayArea), BorderLayout.CENTER);
+
+        // Panel for operations
+        JPanel panel_2 = new JPanel();
+        panel_2.setLayout(new GridLayout(3, 3));
+
+        searchField = new JTextField();
+        panel_2.add(new JLabel("Search by Name:"));
+        panel_2.add(searchField);
+
+        searchButton = new JButton("Search");
+        searchButton.addActionListener(e -> searchContact());
+        panel_2.add(searchButton);
+
+        deleteButton = new JButton("Delete");
+        deleteButton.addActionListener(e -> deleteContact());
+        panel_2.add(deleteButton);
+
+        updateButton = new JButton("Update");
+        updateButton.addActionListener(e -> updateContact());
+        panel_2.add(updateButton);
+
+        displayButton = new JButton("Display All");
+        displayButton.addActionListener(e -> displayAllContacts());
+        panel_2.add(displayButton);
+
+        sortButton = new JButton("Sort Contacts");
+        sortButton.addActionListener(e -> sortContacts());
+        panel_2.add(sortButton);
+
+        saveButton = new JButton("Save Contacts");
+        saveButton.addActionListener(e -> saveContactsToFile());
+        panel_2.add(saveButton);
+
+        loadButton = new JButton("Load Contacts");
+        loadButton.addActionListener(e -> loadContactsFromFile());
+        panel_2.add(loadButton);
+
+        exitButton = new JButton("Exit");
+        exitButton.addActionListener(e -> exitApp());
+        panel_2.add(exitButton);
+
+        add(panel_2, BorderLayout.SOUTH);
+
+        setVisible(true);
+    }
+
+    // Inserting contact
+    public void insertContact() {
+        String name = nameField.getText().trim();
+        String phoneNumber = phoneField.getText().trim();
+
+        if (name.isEmpty() || phoneNumber.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter both name and phone number.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (!Pattern.matches("\\d{10}", phoneNumber)) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid 10-digit phone number.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        for (Contact contact : contacts) {
+            if (contact.name.equalsIgnoreCase(name)) {
+                JOptionPane.showMessageDialog(this, "Contact already exists.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+
+        contacts.add(new Contact(name, phoneNumber));
+        JOptionPane.showMessageDialog(this, "Contact added successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+        clearFields();
+    }
+
+    // Searching for a contact
+    public void searchContact() {
+        String name = searchField.getText().trim();
+        if (contacts.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Phonebook is empty.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a name to search.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        ArrayList<Contact> foundContacts = new ArrayList<>();
+        for (Contact contact : contacts) {
+            if (contact.name.toLowerCase().startsWith(name.toLowerCase())) {
+                foundContacts.add(contact);
+            }
+        }
+
+        if (!foundContacts.isEmpty()) {
+            StringBuilder result = new StringBuilder("Search results:\n");
+            for (Contact contact : foundContacts) {
+                result.append(contact).append("\n");
+            }
+            JOptionPane.showMessageDialog(this, result.toString(), "Search Result", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "Contact not found.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // Display all the contacts
+    public void displayAllContacts() {
+        if (contacts.isEmpty()) {
+            displayArea.setText("Phonebook is empty.");
+        } else {
+            StringBuilder sb = new StringBuilder("All contacts:\n");
+            for (Contact contact : contacts) {
+                sb.append(contact).append("\n");
+            }
+            displayArea.setText(sb.toString());
+        }
+    }
+
+    // Deleting a contact
+    public void deleteContact() {
+        String name = searchField.getText().trim();
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a name to delete.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        for (Contact contact : contacts) {
+            if (contact.name.equalsIgnoreCase(name)) {
+                contacts.remove(contact);
+                JOptionPane.showMessageDialog(this, "Contact deleted successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+        }
+        JOptionPane.showMessageDialog(this, "Contact not found.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    // Updating a contact
+    public void updateContact() {
+        String name = searchField.getText().trim();
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a name to update.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        for (Contact contact : contacts) {
+            if (contact.name.equalsIgnoreCase(name)) {
+                String newPhoneNumber = JOptionPane.showInputDialog(this, "Enter new phone number:");
+                if (newPhoneNumber != null && Pattern.matches("\\d{10}", newPhoneNumber)) {
+                    contact.phoneNumber = newPhoneNumber;
+                    JOptionPane.showMessageDialog(this, "Contact updated successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Invalid phone number.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+                return;
+            }
+        }
+        JOptionPane.showMessageDialog(this, "Contact not found.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    // Sort contacts alphabetically
+    public void sortContacts() {
+        Collections.sort(contacts);
+        JOptionPane.showMessageDialog(this, "Contacts sorted alphabetically.", "Success", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    // Save contacts to a file
+    public void saveContactsToFile() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter("contacts.txt"))) {
+            for (Contact contact : contacts) {
+                writer.println(contact.name + "," + contact.phoneNumber);
+            }
+            JOptionPane.showMessageDialog(this, "Contacts saved to file.", "Success", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error saving contacts.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // Load contacts from a file
+    public void loadContactsFromFile() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("contacts.txt"))) {
+            contacts.clear();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] data = line.split(",");
+                contacts.add(new Contact(data[0], data[1]));
+            }
+            JOptionPane.showMessageDialog(this, "Contacts loaded from file.", "Success", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error loading contacts.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // Closes the application
+    public void exitApp() {
+        int response = JOptionPane.showConfirmDialog(this, "Are you sure you want to exit?", "Confirm Exit", JOptionPane.YES_NO_OPTION);
+        if (response == JOptionPane.YES_OPTION) {
+            System.exit(0);
+        }
+    }
+
+    // Clears the input
+    private void clearFields() {
+        nameField.setText("");
+        phoneField.setText("");
+        searchField.setText("");
+    }
+
+    public static void main(String[] args) {
+        new Phonebook();
+    }
+}
